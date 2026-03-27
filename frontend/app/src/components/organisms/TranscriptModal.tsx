@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
 import { X, FileText, Copy, Check } from 'lucide-react';
 import { Button } from '../atoms';
-import { MOCK_RAW_TRANSCRIPT } from '@/data/mock'; // ✅ Import ตัวใหม่
 
-export const TranscriptModal = ({ onClose }: { onClose: () => void }) => {
+interface TranscriptModalProps {
+  onClose: () => void;
+  transcriptions?: string[];
+}
+
+export const TranscriptModal = ({ onClose, transcriptions = [] }: TranscriptModalProps) => {
   const [copied, setCopied] = useState(false);
+  
+  const transcriptText = transcriptions.length > 0 
+    ? transcriptions.map((text, index) => `[${new Date().toLocaleTimeString()}] ${text}`).join('\n')
+    : 'No transcriptions yet. Start recording to see live transcriptions here.';
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(MOCK_RAW_TRANSCRIPT);
+    navigator.clipboard.writeText(transcriptText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -49,7 +57,7 @@ export const TranscriptModal = ({ onClose }: { onClose: () => void }) => {
           <textarea 
             readOnly
             className="w-full h-full p-6 resize-none bg-white dark:bg-[#131314] text-gray-600 dark:text-gray-300 font-mono text-sm leading-relaxed focus:outline-none custom-scrollbar"
-            value={MOCK_RAW_TRANSCRIPT}
+            value={transcriptText}
           />
         </div>
 

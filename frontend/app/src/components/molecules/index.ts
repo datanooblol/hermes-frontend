@@ -2,4 +2,5 @@
 export * from './CompactField'
 export * from './InterestToggle';
 export * from './ProductCardItem';
-export * from './TranscriptMessage'
+export * from './TranscriptMessage';
+export * from './WebSocketAudioRecorder';

@@ -32,6 +32,7 @@ interface DashboardTemplateProps {
   interests: Record<string, boolean>;
   toggleInterest: (key: string) => void;
   filteredProducts: Product[];
+  transcriptions?: string[];
   
   // UI Actions
   actions: {
@@ -117,7 +118,7 @@ export const DashboardTemplate = (props: DashboardTemplateProps) => {
 
       {/* Modals */}
       {modals.selectedProduct && <ProductModal product={modals.selectedProduct} onClose={() => actions.setSelectedProduct(null)} />}
-      {modals.showTranscript && <TranscriptModal onClose={() => actions.setShowTranscript(false)} />}
+      {modals.showTranscript && <TranscriptModal onClose={() => actions.setShowTranscript(false)} transcriptions={props.transcriptions || []} />}
       {simulationState.showWarning && <WarningModal content={WARNING_CONTENT} onClose={() => simulationState.setShowWarning(false)} />}
       {modals.showLogoutConfirm && <LogoutModal onConfirm={actions.handleLogout} onCancel={() => actions.setShowLogoutConfirm(false)} />}
     </div>
