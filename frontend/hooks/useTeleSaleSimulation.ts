@@ -1,89 +1,204 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Stage } from '@/types';
+// import { useState } from 'react';
+// import { Stage } from '@/types';
+// import mockAiResponses from '@/data/mockAiResponses.json';
+
+// const DEFAULT_SUGGESTION = {
+//   action: "กล่าวทักทายลูกค้าด้วยความสุภาพ และแนะนำตัวพร้อมแจ้งวัตถุประสงค์",
+//   tags: ["Greeting", "Polite"],
+//   lines: [
+//     "สวัสดีครับ เรียนสายคุณลูกค้าสมชาย ใจดี ใช่ไหมครับ?",
+//     "ผมชื่อ [ชื่อคุณ] ติดต่อจากบริษัท... ขออนุญาตรบกวนเวลาสัก 2 นาทีเพื่อนำเสนอสิทธิประโยชน์นะครับ"
+//   ],
+//   explanation: "การทักทายที่ดีต้องชัดเจนว่าเราคือใคร และขออนุญาตลูกค้าก่อนเสมอ"
+// };
+
+// export const useTeleSaleSimulation = () => {
+//   // ✅ 1. แก้เป็น 'Greet'
+//   const [currentStage, setCurrentStage] = useState<Stage>('Greet');
+//   const [isRecording, setIsRecording] = useState(false);
+//   const [showWarning, setShowWarning] = useState(false);
+  
+//   const [aiSuggestion, setAiSuggestion] = useState(DEFAULT_SUGGESTION);
+//   const [isAiProcessing, setIsAiProcessing] = useState(false);
+
+//   const toggleRecording = () => setIsRecording(!isRecording);
+  
+//   const handleStageChange = (stage: Stage) => {
+//     setCurrentStage(stage);
+//   };
+
+//   const resetSimulation = () => {
+//     // ✅ 2. แก้เป็น 'Greet'
+//     setCurrentStage('Greet');
+//     setIsRecording(false);
+//     setShowWarning(false);
+//     setAiSuggestion(DEFAULT_SUGGESTION);
+//   };
+
+//   const simulateCustomerResponse = (text: string, stageId: string) => {
+//     console.log(`[API REQUEST] Sending to AI: "${text}" from stage: ${stageId}`);
+//     setIsAiProcessing(true);
+
+//     setTimeout(() => {
+//       const response = (mockAiResponses as any)[text];
+
+//       if (response) {
+//         setAiSuggestion({
+//           action: response.action,
+//           tags: response.tags,
+//           lines: response.lines,
+//           explanation: response.explanation
+//         });
+        
+//         if (response.nextStage && response.nextStage !== currentStage) {
+//           setCurrentStage(response.nextStage as Stage);
+//         }
+//       } else {
+//         console.log("AI: ไม่มีข้อมูลตรงกันใน Mock Database");
+//       }
+
+//       setIsAiProcessing(false);
+//     }, 1500);
+//   };
+
+//   return {
+//     currentStage,
+//     isRecording,
+//     showWarning,
+//     setShowWarning,
+//     // ✅ 3. แก้เงื่อนไขเป็น 'Greet', 'Discover', 'Pitch'
+//     progress: currentStage === 'Greet' ? 25 : currentStage === 'Discover' ? 50 : currentStage === 'Pitch' ? 75 : 100,
+//     toggleRecording,
+//     handleStageChange,
+//     resetSimulation,
+    
+//     aiSuggestion,
+//     isAiProcessing,
+//     simulateCustomerResponse
+//   };
+// };
+
+import { useState } from 'react';
+import { Stage, CustomerInfo } from '@/types';
+import mockAiResponses from '@/data/mockAiResponses.json';
+
+// 🌟 1. ประกาศ Type ให้ชัดเจน (ไม่ต้องไปยัดไส้ข้างนอก)
+export interface WarningData {
+  title: string;
+  concern: string;
+  action: string;
+  tags: string[];
+  lines: string[];
+  explanation: string;
+}
+
+interface AiResponse {
+  action: string;
+  tags: string[];
+  lines: string[];
+  explanation: string;
+  nextStage?: string;
+  extractedData?: {
+    customer?: Partial<CustomerInfo>;
+    interests?: Record<string, boolean>;
+  };
+}
+
+type MockAiDatabase = Record<string, AiResponse>;
+
+const DEFAULT_SUGGESTION = {
+  action: "กล่าวทักทายลูกค้าด้วยความสุภาพ และแนะนำตัวพร้อมแจ้งวัตถุประสงค์",
+  tags: ["Greeting", "Polite"],
+  lines: [
+    "สวัสดีครับ เรียนสายคุณลูกค้าสมชาย ใจดี ใช่ไหมครับ?",
+    "ผมชื่อ [ชื่อคุณ] ติดต่อจากบริษัท [ชื่อบริษัท] นะครับ",
+    "ขออนุญาตรบกวนเวลาสัก 2-3 นาที เพื่อนำเสนอสิทธิประโยชน์พิเศษสำหรับลูกค้าคนสำคัญนะครับ"
+  ],
+  explanation: "การทักทายที่ดีต้องชัดเจนว่าเราคือใคร และขออนุญาตลูกค้าก่อนเสมอ"
+};
 
 export const useTeleSaleSimulation = () => {
   const [currentStage, setCurrentStage] = useState<Stage>('Greet');
   const [isRecording, setIsRecording] = useState(false);
-  const [showWarning, setShowWarning] = useState(false);
-  const [progress, setProgress] = useState(0);
+  
+  // 🌟 2. เปลี่ยนจากการเก็บแค่ true/false มาเป็นการเก็บข้อมูล Warning ทั้งก้อน
+  const [warningData, setWarningData] = useState<WarningData | null>(null);
+  
+  const [aiSuggestion, setAiSuggestion] = useState(DEFAULT_SUGGESTION);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
 
-  const TOTAL_CYCLE_TIME = 15000;
-  const UPDATE_INTERVAL = 50;
+  const toggleRecording = () => setIsRecording(!isRecording);
+  const handleStageChange = (stage: Stage) => setCurrentStage(stage);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setProgress(prev => {
-          if (showWarning) return prev;
-          if (prev >= 100) {
-            setIsRecording(false);
-            setCurrentStage('Closing');
-            return 100;
-          }
-          const increment = (100 / TOTAL_CYCLE_TIME) * UPDATE_INTERVAL; 
-          const nextProgress = prev + increment;
+  const resetSimulation = () => {
+    setCurrentStage('Greet');
+    setIsRecording(false);
+    setWarningData(null); // เคลียร์ Warning
+    setAiSuggestion(DEFAULT_SUGGESTION);
+  };
 
-          if (prev < 66.6 && nextProgress >= 66.6) {
-             setShowWarning(true);
-             return 66.6;
-          }
-          return nextProgress;
+  const simulateCustomerResponse = (
+    text: string, 
+    stageId: string, 
+    onExtracted?: (data: AiResponse['extractedData']) => void
+  ) => {
+    console.log(`[API REQUEST] Sending to AI: "${text}" from stage: ${stageId}`);
+    setIsAiProcessing(true);
+
+    setTimeout(() => {
+      const database = mockAiResponses as MockAiDatabase;
+      const response = database[text];
+
+      if (response) {
+        setAiSuggestion({
+          action: response.action,
+          tags: response.tags,
+          lines: response.lines,
+          explanation: response.explanation
         });
-      }, UPDATE_INTERVAL);
-    }
-    return () => clearInterval(interval);
-  }, [isRecording, showWarning]);
+        
+        if (response.nextStage && response.nextStage !== currentStage) {
+          setCurrentStage(response.nextStage as Stage);
+        }
 
-  useEffect(() => {
-    if (progress < 33.3 && currentStage !== 'Greet') setCurrentStage('Greet');
-    else if (progress >= 33.3 && progress < 66.6 && currentStage !== 'Discover') setCurrentStage('Discover');
-    else if (progress >= 66.6 && progress < 99.9 && currentStage !== 'Pitch') setCurrentStage('Pitch');
-    else if (progress >= 99.9 && currentStage !== 'Closing') setCurrentStage('Closing');
-  }, [progress]);
+        if (response.extractedData && onExtracted) {
+          onExtracted(response.extractedData);
+        }
 
-  const toggleRecording = useCallback(() => {
-    if (isRecording) {
-      setIsRecording(false);
-    } else {
-      setIsRecording(true);
-      if (progress >= 100) {
-        setProgress(0);
-        setCurrentStage('Greet');
+        // 🌟 3. ปั้นข้อมูล Warning ให้สมบูรณ์จากตรงนี้เลย!
+        if (response.tags.includes("Objection")) {
+          setWarningData({
+            title: "⚠️ ตรวจพบข้อโต้แย้ง (OBJECTION DETECTED)",
+            concern: "ลูกค้ามีความกังวลหรือปฏิเสธข้อเสนอ โปรดใช้ความระมัดระวังและตอบกลับตามคำแนะนำด้านล่าง",
+            action: response.action,
+            tags: response.tags,
+            lines: response.lines,
+            explanation: response.explanation
+          });
+        }
+
+      } else {
+        console.log("AI: ไม่มีข้อมูลตรงกันใน Mock Database");
       }
-    }
-  }, [isRecording, progress]);
 
-  const handleStageChange = useCallback((stage: Stage) => {
-    let newProgress = 0;
-    switch(stage) {
-      case 'Greet': newProgress = 0; break;
-      case 'Discover': newProgress = 34; break; 
-      case 'Pitch': newProgress = 67; break; 
-      case 'Closing': newProgress = 100; break;
-    }
-    setProgress(newProgress);
-    setCurrentStage(stage);
-    if (stage === 'Closing') setIsRecording(false);
-    if (stage === 'Pitch') setShowWarning(true);
-  }, []);
-
-  // ✅ เพิ่มฟังก์ชันนี้
-  const resetSimulation = useCallback(() => {
-      setIsRecording(false);
-      setProgress(0);
-      setCurrentStage('Greet');
-      setShowWarning(false);
-  }, []);
+      setIsAiProcessing(false);
+    }, 1500);
+  };
 
   return {
     currentStage,
     isRecording,
-    showWarning,
-    setShowWarning,
-    progress,
+    progress: currentStage === 'Greet' ? 25 : currentStage === 'Discover' ? 50 : currentStage === 'Pitch' ? 75 : 100,
     toggleRecording,
     handleStageChange,
-    resetSimulation // ✅ อย่าลืมส่งค่าออกไปตรงนี้
+    resetSimulation,
+    
+    // 🌟 4. ส่ง warningData และฟังก์ชันเคลียร์ค่าออกไป
+    warningData,
+    clearWarning: () => setWarningData(null),
+    
+    aiSuggestion,
+    isAiProcessing,
+    simulateCustomerResponse
   };
 };
