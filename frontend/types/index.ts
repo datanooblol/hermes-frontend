@@ -12,7 +12,7 @@ export interface Product {
 }
 
 export interface CustomerInfo {
-  name: string;
+  // name: string;
   age: string;
   income: string;
   status: string;

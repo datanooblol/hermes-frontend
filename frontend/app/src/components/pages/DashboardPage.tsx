@@ -127,7 +127,7 @@ export const DashboardPage = () => {
 
   // --- Data State ---
   const [customer, setCustomer] = useState<CustomerInfo>({
-    name: "คุณสมชาย ใจดี",
+    // name: "คุณสมชาย ใจดี",
     age: "", // ✅ ทำให้ว่างไว้ก่อน จะได้เห็นชัดๆ ตอน AI ดึงมาเติมให้
     income: "",
     status: "Single",
